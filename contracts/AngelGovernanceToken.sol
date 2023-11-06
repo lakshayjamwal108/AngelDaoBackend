@@ -29,12 +29,10 @@ contract AngelGovernanceToken is ERC20 {
 
     function mint(address account, uint256 amount) public {
         require(/*transferEnabled || */msg.sender == i_owner || msg.sender == lockTokensContract, "Transfers are not enabled.");
-        amount=amount*10**18;
         _mint(account, amount);
     }
 
     function burn(uint256 amount) public onlyOwner {
-        amount=amount*10**18;
         _burn(msg.sender, amount);
     }
 
