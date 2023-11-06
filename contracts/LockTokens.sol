@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AngelGovernanceToken.sol";
 
@@ -13,9 +12,13 @@ contract LockTokens {
     AngelGovernanceToken private angelGovernanceToken;
     uint256 private swapRatio;// 30 AngelDollar for 1 AngelGovernanceToken
 
-    constructor() {
+    event TokensLocked(address indexed user, uint256 angelAmount, uint256 governanceAmount);
+
+    constructor(address _angelDollar, address _angelGovernanceToken) {
         i_owner = msg.sender;
         swapRatio = 30;
+        angelDollar = IERC20(_angelDollar);
+        angelGovernanceToken = AngelGovernanceToken(_angelGovernanceToken);
     }
 
         modifier onlyOwner() {
@@ -31,17 +34,17 @@ contract LockTokens {
     function swap(uint256 amountAngelDollar) public {
         require(amountAngelDollar >= 30, "Amount must be greater than 30");
         require(angelDollar.balanceOf(msg.sender) >= amountAngelDollar, "Insufficient AngelDollar balance");
-
         // Calculate the corresponding amount of AngelGovernanceToken based on the swap ratio
         uint256 amountAngelGovernanceToken = amountAngelDollar / swapRatio;
 
-        console.log("Account balance : ",angelDollar.balanceOf(msg.sender));
-
+        require(angelDollar.allowance(msg.sender, address(this)) >= amountAngelDollar, "Allowance not set");
         // Transfer AngelDollar from the sender to this contract
         require(angelDollar.transferFrom(msg.sender, address(this), amountAngelDollar), "AngelDollar transfer failed");
-        console.log("Minting Tokens to senders address");
+
         // Transfer AngelGovernanceToken from this contract to the sender
         angelGovernanceToken.mint(msg.sender, amountAngelGovernanceToken);
+
+        emit TokensLocked(msg.sender, amountAngelDollar, amountAngelGovernanceToken);
     }
 
     function withdraw(address to, uint256 amount) public onlyOwner {
