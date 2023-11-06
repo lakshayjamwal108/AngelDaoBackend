@@ -43,11 +43,12 @@ contract CrowdFunding {
         return numberOfCampaigns - 1;
     }
 
-    function donateToCampaign(uint256 _id) public payable {
+    function donateToCampaign(uint256 _id, uint256 amount) public {
         
-        uint256 amount = msg.value;
 
         Campaign storage campaign = campaigns[_id];
+
+        require(angelDollar.allowance(msg.sender, address(this)) >= amount, "Allowance not set");
 
         bool sent = angelDollar.transferFrom(msg.sender, address(this), amount);
 
@@ -57,6 +58,17 @@ contract CrowdFunding {
             campaign.donations.push(amount);
             campaign.amountCollected = campaign.amountCollected + amount;
         }
+    }
+
+    function withdrawFromCampaign(uint256 _id, uint256 amount, address to) public {
+        
+        Campaign storage campaign = campaigns[_id];
+            
+            require(msg.sender==campaign.owner,"only owner of this campaing can withdraw");
+            require(amount <= campaign.amountCollected,"can't withdraw more than total collection");
+            require(angelDollar.transfer(to, amount), "Withdrawal failed");
+            campaign.amountCollected=campaign.amountCollected-amount;
+
     }
 
     function getDonators(uint256 _id) view public returns (address[] memory, uint256[] memory) {
@@ -73,5 +85,11 @@ contract CrowdFunding {
         }
 
         return allCampaigns;
+    }
+
+    function getAngelDollarAddress() public view returns (address) {
+
+        return address(angelDollar);
+
     }
 }
